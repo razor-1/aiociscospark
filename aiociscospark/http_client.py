@@ -2,8 +2,6 @@ import aiohttp
 import asyncio
 import logging
 
-from aiohttp.client import DEFAULT_TIMEOUT
-
 from .exceptions import (SparkResponseError, SparkResponseNotReceived, SparkRateLimitExceeded,
                          SparkClientConfigurationError)
 from .utils import refresh_access_token
@@ -37,7 +35,7 @@ class HTTPClient(object):
         401: 'handle_unauthorized_error',
     }
 
-    def __init__(self, creds, loop=None, conn_timeout=None, read_timeout=DEFAULT_TIMEOUT):
+    def __init__(self, creds, loop=None, total_timeout=30.0):
         """
         A thin wrapper around `aiohttp.ClientSession` module that allows registering of response
         handlers and has built-in support for retrying failed requests.
@@ -45,15 +43,14 @@ class HTTPClient(object):
         :param creds: a dictionary with at least one key: "access_token".
         Other allowed keys are: "refresh_token", "client_id", "client_secret".
         :param loop: an event loop
-        :param conn_timeout: the connection timeout
-        :param read_timeout: the read timeout
+        :param total_timeout: the timeout for the entire http transaction
+        :type total_timeout: float
         """
         if not creds.get('access_token', None):
             raise SparkClientConfigurationError('"access_token" is required')
         self._creds = creds
         self._loop = loop
-        self._conn_timeout = conn_timeout
-        self._read_timeout = read_timeout
+        self._timeout = aiohttp.ClientTimeout(total=total_timeout)
 
         self._registered_response_handlers = {}
 
@@ -76,8 +73,7 @@ class HTTPClient(object):
         return aiohttp.ClientSession(
             loop=self._loop,
             headers=self.default_headers,
-            conn_timeout=self._conn_timeout,
-            read_timeout=self._read_timeout
+            timeout=self._timeout
         )
 
     def close_session(self):

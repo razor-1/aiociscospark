@@ -20,8 +20,7 @@ class TestHTTPClient:
         assert self.client._loop == event_loop
         assert self.client._registered_response_handlers == {}
         assert self.client._creds is credentials
-        assert self.client._conn_timeout is None
-        assert self.client._read_timeout == 300
+        assert self.client._timeout is not None
 
     def test_default_headers(self, access_token):
         assert self.client.default_headers == {
@@ -44,8 +43,7 @@ class TestHTTPClient:
             'Authorization': f'Bearer {access_token}'
         }
         assert self.client.session._loop == self.client._loop
-        assert self.client.session._conn_timeout == self.client._conn_timeout
-        assert self.client.session._read_timeout == self.client._read_timeout
+        assert self.client.session._timeout == self.client._timeout
 
     def test_request(self, event_loop, test_url, people_list, response_headers):
         with aioresponses() as m:
